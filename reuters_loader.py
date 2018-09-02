@@ -71,4 +71,33 @@ class MyHandler(ContentHandler):
 		self.in_exchanges = False
 		self.in_companies = False
 		self.in_orgs = False
-	
+
+# main function:
+directory = 'reuters21578/sgml_files'
+files = os.lsitdir(directory)
+
+# set up handler and parser
+parser = xml.sax.make_parser()
+handler = MyHandler()
+parser.setContentHandler(handler)
+
+# loop through 22 files
+for f in files:
+	cur_file = directory + f
+	#only open sgm files
+	if f.endswith('.sgm') and f.startswith('reut'):
+		parser.parse(cur_file)
+
+# csv, with doc id and "LEWISSPLIT" train/test information 
+def create_csv(title, dictionary):
+	values = [val for sublist in dictionary.values() for val in sublist]
+	keys = dictionary.keys()
+	newRow = [handler.lewissplit, keys, values]
+	with open(title, 'w') as output:
+		writer = csv.writer(output, lineterminator = '\n')
+		writer.writerows(zip(*newRow))
+	output.close()
+
+create_csv("topics_popular.csv", handler.topdict)
+create_csv("body_no_null.csv", handler.boddict)
+create_csv("title_no_null.csv", handler.titledict)
