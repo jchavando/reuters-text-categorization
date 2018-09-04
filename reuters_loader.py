@@ -103,6 +103,39 @@ class MyHandler(ContentHandler):
 		elif name == "ORGS":
 			self._reset()
 			self.in_orgs = True
+
+	#add the value associated with each tag to a dictionary
+	def characters(self, content):
+		#eliminates newline character because the parser does not
+		if content != '\n':
+			#groups lines of text into one BODY, TITLE, and MKNOTE per article
+			if self.tag == "BODY":
+				self.article.body += " " + content
+			elif self.tag == "TITLE":
+				self.article.title += " " + content
+			elif self.tag == "MKNOTE":
+				self.article.mknote += " " + content
+		#labels each of the lists according to their real tag and eliminates the "D" tag
+		elif self.in_d:
+			if self.in_places:
+				self.article.places.append(content)
+			elif self.in_people:
+				self.article.people.append(content)
+			elif self.in_topics:
+				self.article.topics.append(content)
+			elif self.in_exchanges:
+				self.article.exchanges.append(content)
+			elif self.in_companies:
+				self.article.companies.append(content)
+			elif self.in_orgs:
+				self.article.orgs.append(content)
+		#handles the remaining standard parsing
+		elif self.tag == "DATE":
+			self.article.date = content
+		elif self.tag == "AUTHOR":
+			self.article.author = content
+		elif self.tag == "DATELINE":
+			self.article.dateline = content
 			
 # main function:
 directory = 'reuters21578/sgml_files'
