@@ -72,6 +72,38 @@ class MyHandler(ContentHandler):
 		self.in_companies = False
 		self.in_orgs = False
 
+	def startElement(self, name, attrs):
+		self.tag = name
+
+		#each REUTERS tag has attributes that describe the presence of topics, the id, and whether it's a training/test set
+		if name == "REUTERS":
+			self.docID = attrs.getValue("NEWID")
+			if (attrs.getValue("LEWISSPLIT") == "TRAIN"):
+				self.lewis = "lewis_train"
+			elif (attrs.getValue("LEWISSPLIT") == "TEST"):
+				self.lewis = "lewis_test"
+		#the following statemetns denote the presence of the real tag associated with the "D" tag
+		elif name == "D":
+			self.in_d = True
+		elif name == "TOPICS":
+			self._reset()
+			self.in_topics = True
+		elif name == "PLACES":
+			self._reset()
+			self.in_places = True
+		elif name == "PEOPLE":
+			self._reset()
+			self.in_people = True
+		elif name == "EXCHANGES":
+			self._reset()
+			self.in_exchanges = True
+		elif name == "COMPANIES":
+			self._reset()
+			self.in_companies = True
+		elif name == "ORGS":
+			self._reset()
+			self.in_orgs = True
+			
 # main function:
 directory = 'reuters21578/sgml_files'
 files = os.lsitdir(directory)
