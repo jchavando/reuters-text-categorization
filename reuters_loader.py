@@ -136,7 +136,42 @@ class MyHandler(ContentHandler):
 			self.article.author = content
 		elif self.tag == "DATELINE":
 			self.article.dateline = content
-			
+
+	#resets content before moving to the next element
+	def endElement(self, name):
+		#each REUTERS tag signals the start of a new article
+		if name == "REUTERS":
+			#add each key, value pair to a dictionary
+			if self.article.body != "" and self.article.topics != [] and self.article.title != "":
+				#isolate most popular topic
+				popularTopic = self.article.topics[0]
+				if len(self.article.topics) > 1:
+					for topic in self.article.topics:
+						if topic in self.freqDict and self.freqDict[topic] > self.freqDict[popularTopic]:
+							popularTopic = topic
+				#dictionaries for individual features
+				self.topdict[self.docID].append(popularTopic)
+				self.boddict[self.docID].append(self.article.body)
+				self.titledict[self.docID].append(self.article.title)
+				self.lewissplit.append(self.lewis)
+
+		self.defdict["BODY"].append(self.article.body)
+		self.defdict["DATE"].append(self.article.date)
+		self.defdict["TITLE"].append(self.article.title)
+		self.defdict["TOPICS"].append(self.article.topics)
+		self.defdict["PLACES"].append(self.article.places)
+		self.defdict["PEOPLE"].append(self.article.people)
+		self.defdict["AUTHOR"].append(self.article.author)
+		self.defdict["DATELINE"].append(self.article.dateline)
+		self.defdict["EXCHANGES"].append(self.article.exchanges)
+		self.defdict["COMPANIES"].append(self.article.companies)
+		self.defdict["ORGS"].append(self.article.orgs)
+		self.defdict["MKNOTE"].append(self.article.mknote)
+
+		#create new Article object
+		self.article = Article()
+	self.in_d = False
+
 # main function:
 directory = 'reuters21578/sgml_files'
 files = os.lsitdir(directory)
