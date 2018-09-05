@@ -13,9 +13,9 @@ The goal of this section was to load the data into a manageable DataFrame. The e
 
 This script loops through the 22 files and uses the SAX xml parser to isolate xml tags and corresponding values. Certain parsing that the SAX parser cannot handle is specifically manipulated, as detailed below. An object is created for each article with values for each tag. The objects are then placed in a dictionary which is transformed into a DataFrame of all the files. The individual parsing is as follows:
 
-    - since the parser interprets a newline character ('\n') as the indication of a new element, the text of the "BODY" and "TITLE" have to be individually grouped for each article
+-since the parser interprets a newline character ('\n') as the indication of a new element, the text of the "BODY" and "TITLE" have to be individually grouped for each article
     
-    -each element of a list is intepreted as a new tag, so the tags with lists, such as "PLACES", append elements to their respective overall list
+-each element of a list is intepreted as a new tag, so the tags with lists, such as "PLACES", append elements to their respective overall list
 
 ## Exploratory Analysis
 Most of the documents hava a topics tag that notes the category of the article. CSVs of the "BODY" and "TITLE", mapped to each document id, are created to distinguish their accuracy in predicting each topic, computed in reuters_loader.py
