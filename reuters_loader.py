@@ -71,4 +71,133 @@ class MyHandler(ContentHandler):
 		self.in_exchanges = False
 		self.in_companies = False
 		self.in_orgs = False
-	
+
+	def startElement(self, name, attrs):
+		self.tag = name
+
+		#each REUTERS tag has attributes that describe the presence of topics, the id, and whether it's a training/test set
+		if name == "REUTERS":
+			self.docID = attrs.getValue("NEWID")
+			if (attrs.getValue("LEWISSPLIT") == "TRAIN"):
+				self.lewis = "lewis_train"
+			elif (attrs.getValue("LEWISSPLIT") == "TEST"):
+				self.lewis = "lewis_test"
+		#the following statemetns denote the presence of the real tag associated with the "D" tag
+		elif name == "D":
+			self.in_d = True
+		elif name == "TOPICS":
+			self._reset()
+			self.in_topics = True
+		elif name == "PLACES":
+			self._reset()
+			self.in_places = True
+		elif name == "PEOPLE":
+			self._reset()
+			self.in_people = True
+		elif name == "EXCHANGES":
+			self._reset()
+			self.in_exchanges = True
+		elif name == "COMPANIES":
+			self._reset()
+			self.in_companies = True
+		elif name == "ORGS":
+			self._reset()
+			self.in_orgs = True
+
+	#add the value associated with each tag to a dictionary
+	def characters(self, content):
+		#eliminates newline character because the parser does not
+		if content != '\n':
+			#groups lines of text into one BODY, TITLE, and MKNOTE per article
+			if self.tag == "BODY":
+				self.article.body += " " + content
+			elif self.tag == "TITLE":
+				self.article.title += " " + content
+			elif self.tag == "MKNOTE":
+				self.article.mknote += " " + content
+		#labels each of the lists according to their real tag and eliminates the "D" tag
+		elif self.in_d:
+			if self.in_places:
+				self.article.places.append(content)
+			elif self.in_people:
+				self.article.people.append(content)
+			elif self.in_topics:
+				self.article.topics.append(content)
+			elif self.in_exchanges:
+				self.article.exchanges.append(content)
+			elif self.in_companies:
+				self.article.companies.append(content)
+			elif self.in_orgs:
+				self.article.orgs.append(content)
+		#handles the remaining standard parsing
+		elif self.tag == "DATE":
+			self.article.date = content
+		elif self.tag == "AUTHOR":
+			self.article.author = content
+		elif self.tag == "DATELINE":
+			self.article.dateline = content
+
+	#resets content before moving to the next element
+	def endElement(self, name):
+		#each REUTERS tag signals the start of a new article
+		if name == "REUTERS":
+			#add each key, value pair to a dictionary
+			if self.article.body != "" and self.article.topics != [] and self.article.title != "":
+				#isolate most popular topic
+				popularTopic = self.article.topics[0]
+				if len(self.article.topics) > 1:
+					for topic in self.article.topics:
+						if topic in self.freqDict and self.freqDict[topic] > self.freqDict[popularTopic]:
+							popularTopic = topic
+				#dictionaries for individual features
+				self.topdict[self.docID].append(popularTopic)
+				self.boddict[self.docID].append(self.article.body)
+				self.titledict[self.docID].append(self.article.title)
+				self.lewissplit.append(self.lewis)
+
+		self.defdict["BODY"].append(self.article.body)
+		self.defdict["DATE"].append(self.article.date)
+		self.defdict["TITLE"].append(self.article.title)
+		self.defdict["TOPICS"].append(self.article.topics)
+		self.defdict["PLACES"].append(self.article.places)
+		self.defdict["PEOPLE"].append(self.article.people)
+		self.defdict["AUTHOR"].append(self.article.author)
+		self.defdict["DATELINE"].append(self.article.dateline)
+		self.defdict["EXCHANGES"].append(self.article.exchanges)
+		self.defdict["COMPANIES"].append(self.article.companies)
+		self.defdict["ORGS"].append(self.article.orgs)
+		self.defdict["MKNOTE"].append(self.article.mknote)
+
+		#create new Article object
+		self.article = Article()
+	self.in_d = False
+
+# main function:
+directory = 'reuters21578/sgml_files'
+files = os.lsitdir(directory)
+
+# set up handler and parser
+parser = xml.sax.make_parser()
+handler = MyHandler()
+parser.setContentHandler(handler)
+
+# loop through 22 files
+for f in files:
+	cur_file = directory + f
+	#only open sgm files
+	if f.endswith('.sgm') and f.startswith('reut'):
+		parser.parse(cur_file)
+
+# csv, with doc id and "LEWISSPLIT" train/test information 
+def create_csv(title, dictionary):
+	values = [val for sublist in dictionary.values() for val in sublist]
+	keys = dictionary.keys()
+	newRow = [handler.lewissplit, keys, values]
+	with open(title, 'w') as output:
+		writer = csv.writer(output, lineterminator = '\n')
+		writer.writerows(zip(*newRow))
+	output.close()
+
+create_csv("topics_popular.csv", handler.topdict)
+create_csv("body_no_null.csv", handler.boddict)
+create_csv("title_no_null.csv", handler.titledict)
